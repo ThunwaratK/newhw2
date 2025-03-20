@@ -1,7 +1,8 @@
-import 'package:cp_213_sqflife_thunwarat/boon_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'boon_entity.dart';
 import 'boon_form_screen.dart';
+import 'sqflite_floor_service.dart';
 
 class BoonListViewScreen extends StatefulWidget {
   const BoonListViewScreen({super.key});
@@ -11,24 +12,22 @@ class BoonListViewScreen extends StatefulWidget {
 }
 
 class _BoonListViewScreenState extends State<BoonListViewScreen> {
-  List<BoonModel> boonList = [
-    BoonModel(
-      title: 'ตักบาตรพระกรรมฐาน',
-      desc: 'วัดพุทธบูชา',
-      eventDate: '15 มี.ค. 2568',
-      startHour: 'startHour1',
-      startMinute: 'startMinute1',
-      location: 'วัดพุทธบูชา',
-    ),
-    BoonModel(
+  late List<BoonEntity?> boonList;
+  @override
+  void initState() async {
+    final database = SqfliteFloorService.instance.database;
+    BoonEntity boon1 = BoonEntity(
       title: 'ตักบาตรฟังธรรม',
       desc: 'สวนแสงธรรม',
       eventDate: '16 มี.ค. 2568',
       startHour: 'startHour2',
       startMinute: 'startMinute2',
       location: 'สวนแสงธรรม',
-    ),
-  ];
+    );
+    database.boonDao.insertBoon(boon1);
+    boonList = await database.boonDao.findAllBoons();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
