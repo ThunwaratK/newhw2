@@ -12,51 +12,45 @@ class BoonListViewScreen extends StatefulWidget {
 }
 
 class _BoonListViewScreenState extends State<BoonListViewScreen> {
-  List<BoonEntity?> boonList = []; // Initialize as an empty list
-  bool isLoading = true; // Add a loading state
+  List<BoonEntity?> boonList = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData(); // Load data asynchronously
+    _loadData();
   }
 
   Future<void> _loadData() async {
-    // Ensure the database is initialized
     await SqfliteFloorService.instance.initializeDatabase();
     final database = SqfliteFloorService.instance.database;
 
-    // Insert a sample record (optional, for testing purposes)
-    BoonEntity boon1 = BoonEntity(
-      title: 'ตักบาตรฟังธรรม',
-      desc: 'สวนแสงธรรม',
-      eventDate: '16 มี.ค. 2568',
-      startHour: 'startHour2',
-      startMinute: 'startMinute2',
-      location: 'สวนแสงธรรม',
-    );
-    await database.boonDao.insertBoon(boon1);
-
-    // Fetch all records
     final fetchedBoons = await database.boonDao.findAllBoons();
 
-    // Update the state
     setState(() {
       boonList = fetchedBoons;
-      isLoading = false; // Set loading to false
+      isLoading = false;
     });
+  }
+
+  Future<void> _deleteBoon(int bid) async {
+    final database = SqfliteFloorService.instance.database;
+
+    await database.boonDao.deleteBoonByBID(bid);
+
+    _loadData();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[300],
+      backgroundColor: Colors.brown[300],
       appBar: AppBar(
         title: Text(
           'Boon ListView',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.grey[400],
+        backgroundColor: Colors.blueGrey[400],
         centerTitle: true,
         actions: [
           IconButton(
@@ -64,82 +58,122 @@ class _BoonListViewScreenState extends State<BoonListViewScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const BoonFormScreen(),
-                  settings: RouteSettings(arguments: null),
+                  builder:
+                      (context) =>
+                          const BoonFormScreen(mode: "add", boonId: null),
                 ),
-              );
+              ).then((_) => setState(() {}));
             },
-            icon: Icon(Icons.add),
+            icon: Icon(Icons.add, color: Colors.white),
           ),
         ],
       ),
-      body:
-          isLoading
-              ? Center(
-                child: CircularProgressIndicator(),
-              ) // Show a loading spinner
-              : boonList.isEmpty
-              ? Center(
-                child: Text('No data available'),
-              ) // Show a message if the list is empty
-              : Padding(
-                padding: const EdgeInsets.all(10),
-                child: ListView.separated(
-                  itemBuilder: (context, index) {
-                    final boon = boonList[index];
-                    return Card(
-                      color: Colors.grey[200],
-                      child: ListTile(
-                        leading: IconButton(
-                          icon: CircleAvatar(
-                            backgroundColor: Colors.purple[200],
-                            child: Icon(Icons.place),
-                          ),
-                          onPressed: () {},
+      body: FutureBuilder<List<BoonEntity?>>(
+        future: _fetchBoons(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('No data available'));
+          } else {
+            final boonList = snapshot.data!;
+            return Padding(
+              padding: const EdgeInsets.all(10),
+              child: ListView.separated(
+                itemBuilder: (context, index) {
+                  final boon = boonList[index];
+                  return Card(
+                    color: Colors.green[200],
+                    child: ListTile(
+                      leading: IconButton(
+                        icon: CircleAvatar(
+                          backgroundColor: Colors.yellow[200],
+                          child: Icon(Icons.place),
                         ),
-                        title: Text(
-                          boon?.title ?? '',
-                          style: GoogleFonts.openSans(
-                            textStyle: Theme.of(context).textTheme.bodyLarge,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            fontStyle: FontStyle.normal,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '${boon?.location ?? ''} ${boon?.eventDate ?? ''}',
-                          style: GoogleFonts.openSans(
-                            textStyle: Theme.of(context).textTheme.bodyLarge,
-                            fontSize: 10,
-                            fontStyle: FontStyle.normal,
-                          ),
-                        ),
-                        trailing: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(Icons.edit),
-                            ),
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(Icons.delete),
-                            ),
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(Icons.keyboard_arrow_right),
-                            ),
-                          ],
+                        onPressed: () {},
+                      ),
+                      title: Text(
+                        boon?.title ?? '',
+                        style: GoogleFonts.openSans(
+                          textStyle: Theme.of(context).textTheme.bodyLarge,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          fontStyle: FontStyle.normal,
                         ),
                       ),
-                    );
-                  },
-                  separatorBuilder:
-                      (BuildContext context, int index) => const Divider(),
-                  itemCount: boonList.length,
-                ),
+                      subtitle: Text(
+                        '${boon?.location ?? ''} ${boon?.eventDate ?? ''}',
+                        style: GoogleFonts.openSans(
+                          textStyle: Theme.of(context).textTheme.bodyLarge,
+                          fontSize: 10,
+                          fontStyle: FontStyle.normal,
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              if (boon?.bid != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => BoonFormScreen(
+                                          mode: "edit",
+                                          boonId: boon!.bid,
+                                        ),
+                                  ),
+                                ).then((_) => setState(() {}));
+                              }
+                            },
+                            icon: Icon(Icons.edit),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              if (boon?.bid != null) {
+                                _deleteBoon(boon!.bid!);
+                              }
+                            },
+                            icon: Icon(Icons.delete),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              if (boon?.bid != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => BoonFormScreen(
+                                          mode: "view",
+                                          boonId: boon!.bid,
+                                        ),
+                                  ),
+                                );
+                              }
+                            },
+                            icon: Icon(Icons.keyboard_arrow_right),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                separatorBuilder:
+                    (BuildContext context, int index) => const Divider(),
+                itemCount: boonList.length,
               ),
+            );
+          }
+        },
+      ),
     );
+  }
+
+  Future<List<BoonEntity?>> _fetchBoons() async {
+    await SqfliteFloorService.instance.initializeDatabase();
+    final database = SqfliteFloorService.instance.database;
+    return await database.boonDao.findAllBoons();
   }
 }

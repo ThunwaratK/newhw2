@@ -114,7 +114,7 @@ class _$BoonDao extends BoonDao {
   _$BoonDao(
     this.database,
     this.changeListener,
-  )   : _queryAdapter = QueryAdapter(database),
+  )   : _queryAdapter = QueryAdapter(database, changeListener),
         _boonEntityInsertionAdapter = InsertionAdapter(
             database,
             'boon',
@@ -126,7 +126,8 @@ class _$BoonDao extends BoonDao {
                   'startHour': item.startHour,
                   'startMinute': item.startMinute,
                   'location': item.location
-                }),
+                },
+            changeListener),
         _boonEntityUpdateAdapter = UpdateAdapter(
             database,
             'boon',
@@ -139,7 +140,8 @@ class _$BoonDao extends BoonDao {
                   'startHour': item.startHour,
                   'startMinute': item.startMinute,
                   'location': item.location
-                });
+                },
+            changeListener);
 
   final sqflite.DatabaseExecutor database;
 
@@ -182,6 +184,21 @@ class _$BoonDao extends BoonDao {
   Future<void> deleteBoonByBID(int bid) async {
     await _queryAdapter
         .queryNoReturn('DELETE FROM boon WHERE bid = ?1', arguments: [bid]);
+  }
+
+  @override
+  Stream<List<BoonEntity?>> watchAllBoons() {
+    return _queryAdapter.queryListStream('SELECT * FROM boon',
+        mapper: (Map<String, Object?> row) => BoonEntity(
+            bid: row['bid'] as int?,
+            title: row['title'] as String,
+            desc: row['desc'] as String?,
+            eventDate: row['eventDate'] as String,
+            startHour: row['startHour'] as String,
+            startMinute: row['startMinute'] as String,
+            location: row['location'] as String),
+        queryableName: 'boon',
+        isView: false);
   }
 
   @override

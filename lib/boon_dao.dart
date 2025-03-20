@@ -17,4 +17,7 @@ abstract class BoonDao {
 
   @Update(onConflict: OnConflictStrategy.replace)
   Future<void> updateBoon(BoonEntity boonEntity);
+
+  @Query('SELECT * FROM boon')
+  Stream<List<BoonEntity?>> watchAllBoons();
 }
